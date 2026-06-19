@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عملیات: صفر تا Domain Admin</title>
+<style>
+  :root{
+    --bg-void:#110D09;
+    --bg-panel:#1C160F;
+    --bg-panel-2:#241C12;
+    --line:#34291A;
+    --amber:#E8A33D;
+    --amber-bright:#FFC85C;
+    --cyan:#4FD1C5;
+    --text:#F2E9DC;
+    --muted:#8C7F6B;
+    --muted-2:#5E5340;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(232,163,61,0.10), transparent 60%),
+      var(--bg-void);
+    color:var(--text);
+    font-family:'Vazirmatn','Segoe UI','Tahoma',sans-serif;
+    min-height:100vh;
+    padding:32px 16px 80px;
+  }
+  .mono{font-family:'Consolas','SF Mono','Courier New',monospace;}
+  .wrap{max-width:760px;margin:0 auto;}
+
+  .eyebrow{
+    font-family:'Consolas','SF Mono','Courier New',monospace;
+    font-size:11px;letter-spacing:.22em;color:var(--cyan);
+    text-transform:uppercase;margin-bottom:10px;direction:ltr;text-align:right;
+  }
+  h1{font-size:28px;font-weight:800;margin:0 0 6px;line-height:1.35;}
+  h1 span{color:var(--amber-bright);}
+  .subtitle{color:var(--muted);font-size:14.5px;line-height:1.9;margin:0 0 28px;max-width:60ch;}
+
+  .ladder-card{
+    background:var(--bg-panel);border:1px solid var(--line);
+    border-radius:10px;padding:22px 20px 18px;margin-bottom:34px;
+  }
+  .ladder-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:6px;}
+  .ladder-label{font-size:12px;letter-spacing:.14em;color:var(--muted);font-family:'Consolas','SF Mono','Courier New',monospace;}
+  .ladder-current{font-family:'Consolas','SF Mono','Courier New',monospace;font-size:18px;font-weight:700;color:var(--amber-bright);direction:ltr;text-align:left;}
+  .ladder-track{position:relative;height:6px;background:var(--bg-panel-2);border-radius:3px;margin:0 4px 14px;}
+  .ladder-fill{position:absolute;top:0;right:0;height:100%;border-radius:3px;
+    background:linear-gradient(90deg,var(--amber) 0%,var(--amber-bright) 100%);transition:width .5s ease;}
+  .ladder-stops{display:flex;justify-content:space-between;direction:ltr;}
+  .stop{flex:1;text-align:center;font-family:'Consolas','SF Mono','Courier New',monospace;font-size:9.5px;letter-spacing:.03em;color:var(--muted-2);}
+  .stop .dot{width:8px;height:8px;border-radius:50%;background:var(--bg-panel-2);border:1px solid var(--line);margin:0 auto 6px;transition:.3s;}
+  .stop.reached .dot{background:var(--amber);border-color:var(--amber-bright);box-shadow:0 0 8px rgba(232,163,61,.6);}
+  .stop.reached{color:var(--amber);}
+  .stop.current .dot{background:var(--amber-bright);box-shadow:0 0 0 4px rgba(255,200,92,.18);}
+  .stop.current{color:var(--amber-bright);}
+
+  .overall{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+  .overall-bar{flex:1;height:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:5px;overflow:hidden;}
+  .overall-fill{height:100%;background:linear-gradient(90deg,var(--cyan),#7fe3da);transition:width .5s ease;}
+  .overall-text{font-family:'Consolas','SF Mono','Courier New',monospace;font-size:12.5px;color:var(--muted);white-space:nowrap;direction:ltr;}
+
+  .phase{background:var(--bg-panel);border:1px solid var(--line);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+  .phase-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;gap:14px;transition:background .15s;}
+  .phase-head:hover{background:var(--bg-panel-2);}
+  .phase-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .phase-num{font-family:'Consolas','SF Mono','Courier New',monospace;font-size:11px;color:var(--cyan);letter-spacing:.08em;flex-shrink:0;direction:ltr;}
+  .phase-title{font-weight:700;font-size:15.5px;}
+  .phase-title small{display:block;color:var(--muted);font-weight:400;font-size:12.5px;margin-top:2px;}
+  .phase-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .phase-count{font-family:'Consolas','SF Mono','Courier New',monospace;font-size:12px;color:var(--muted);direction:ltr;}
+  .phase-bar{width:54px;height:5px;border-radius:3px;background:var(--bg-panel-2);overflow:hidden;}
+  .phase-bar-fill{height:100%;background:var(--amber);transition:width .4s ease;}
+  .chev{color:var(--muted-2);transition:transform .25s;font-size:12px;}
+  .phase.open .chev{transform:rotate(90deg);}
+  .phase.complete .phase-num{color:var(--amber-bright);}
+  .phase.complete .phase-title{color:var(--amber-bright);}
+
+  .phase-body{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+  .phase.open .phase-body{max-height:700px;}
+  .items{padding:2px 14px 14px;}
+  .item{display:flex;align-items:flex-start;gap:10px;padding:9px 8px;border-radius:6px;cursor:pointer;transition:background .15s;}
+  .item:hover{background:var(--bg-panel-2);}
+  .box{font-family:'Consolas','SF Mono','Courier New',monospace;font-size:13px;color:var(--muted-2);flex-shrink:0;width:20px;text-align:center;margin-top:1px;user-select:none;}
+  .item.checked .box{color:var(--amber-bright);}
+  .item-text{font-size:13.8px;line-height:1.6;}
+  .item.checked .item-text{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--muted-2);}
+
+  .footer{margin-top:30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .footer-note{font-size:12px;color:var(--muted-2);font-family:'Consolas','SF Mono','Courier New',monospace;direction:ltr;}
+  .reset-btn{background:transparent;border:1px solid var(--line);color:var(--muted);font-family:'Vazirmatn';font-size:12.5px;padding:8px 14px;border-radius:7px;cursor:pointer;transition:.15s;}
+  .reset-btn:hover{border-color:#7a3b3b;color:#e08585;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+    <div class="eyebrow">OPERATION LOG // INFRASTRUCTURE PENTEST TRACK</div>
+    <h1>عملیات: صفر تا <span>Domain Admin</span></h1>
+    <p class="subtitle">مسیر CTF تا تخصص نفوذ به زیرساخت. هر آیتمی که تموم می‌کنی رو علامت بزن — پیشرفتت توی همین مرورگر ذخیره می‌مونه.</p>
+
+    <div class="ladder-card">
+      <div class="ladder-top">
+        <span class="ladder-label">PRIVILEGE LEVEL</span>
+        <span class="ladder-current">ANON</span>
+      </div>
+      <div class="ladder-track"><div class="ladder-fill" style="width:0%"></div></div>
+      <div class="ladder-stops">
+        <div class="stop reached current"><div class="dot"></div>ANON</div><div class="stop  "><div class="dot"></div>GUEST</div><div class="stop  "><div class="dot"></div>USER</div><div class="stop  "><div class="dot"></div>L-ADMIN</div><div class="stop  "><div class="dot"></div>D-USER</div><div class="stop  "><div class="dot"></div>P-USER</div><div class="stop  "><div class="dot"></div>E-ADMIN</div><div class="stop  "><div class="dot"></div>DOMAIN ADMIN</div>
+      </div>
+    </div>
+
+    <div class="overall">
+      <div class="overall-bar"><div class="overall-fill" style="width:0%"></div></div>
+      <div class="overall-text">0/30 · 0%</div>
+    </div>
+  
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(0)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 01</span>
+            <div class="phase-title">پایه: برنامه‌نویسی و ذهنیت امنیتی<small>اولین زبان‌ها و مفاهیم پایه‌ای که همه‌چیز روشون سوار می‌شه</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/5</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(0,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">یادگیری پایتون پایه (متغیر، حلقه، تابع، فایل)</span>
+            </div><div class="item " onclick="toggle(0,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">آشنایی با کتابخانه‌های requests و socket</span>
+            </div><div class="item " onclick="toggle(0,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تسلط به اسکریپت‌نویسی Bash و خط‌فرمان</span>
+            </div><div class="item " onclick="toggle(0,3)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">فهم مفاهیم C (پوینتر، استک، حافظه)</span>
+            </div><div class="item " onclick="toggle(0,4)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">آشنایی مقدماتی با Assembly و خروجی gdb/objdump</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase open ">
+        <div class="phase-head" onclick="togglePhase(1)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 02</span>
+            <div class="phase-title">پایه: لینوکس و شبکه<small>محیط کاری و زبان شبکه‌ای که همه‌ی ابزارها باهاش حرف می‌زنن</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/5</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(1,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">نصب و راه‌اندازی Kali Linux یا Parrot OS</span>
+            </div><div class="item " onclick="toggle(1,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تکمیل کامل OverTheWire Bandit (۳۴ مرحله)</span>
+            </div><div class="item " onclick="toggle(1,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">یادگیری مدل OSI/TCP-IP و پروتکل‌های کلیدی</span>
+            </div><div class="item " onclick="toggle(1,3)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تمرین عملی nmap و Wireshark</span>
+            </div><div class="item " onclick="toggle(1,4)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">گذراندن دوره‌ی رایگان PortSwigger Web Security Academy</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(2)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 03</span>
+            <div class="phase-title">ورود به CTF (Jeopardy)<small>اولین چالش‌های واقعی و دسته‌بندی‌شده</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/4</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(2,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">حل کامل آرشیو picoCTF</span>
+            </div><div class="item " onclick="toggle(2,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تکمیل مسیر Pre Security در TryHackMe</span>
+            </div><div class="item " onclick="toggle(2,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تکمیل مسیر Jr Penetration Tester در TryHackMe</span>
+            </div><div class="item " onclick="toggle(2,3)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">حل تمام ماشین‌های Starting Point در HackTheBox</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(3)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 04</span>
+            <div class="phase-title">Boot2Root و ساخت پروفایل عمومی<small>اینجاست که مهارت واقعی pentest شکل می‌گیره</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/4</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(3,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">حل حداقل ۱۰ ماشین سطح Easy در HackTheBox</span>
+            </div><div class="item " onclick="toggle(3,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">نوشتن write-up برای هر ماشین حل‌شده در گیت‌هاب شخصی</span>
+            </div><div class="item " onclick="toggle(3,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">پیوستن یا تشکیل یک تیم CTF</span>
+            </div><div class="item " onclick="toggle(3,3)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">ثبت‌نام و شرکت در اولین مسابقه‌ی واقعی (از CTFtime)</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(4)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 05</span>
+            <div class="phase-title">اولین مدرک حرفه‌ای: eJPT<small>اعتبارسنجی رسمی اول مسیر</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/3</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(4,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">مرور کامل سرفصل‌های آزمون eJPT</span>
+            </div><div class="item " onclick="toggle(4,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">ثبت‌نام و شرکت در آزمون</span>
+            </div><div class="item " onclick="toggle(4,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">قبولی و دریافت مدرک eJPT</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(5)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 06</span>
+            <div class="phase-title">تخصص زیرساخت: Active Directory<small>هسته‌ی اصلی هدف نهایی‌ت — نفوذ به زیرساخت سازمانی</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/6</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(5,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">راه‌اندازی لب رایگان GOAD روی سیستم شخصی</span>
+            </div><div class="item " onclick="toggle(5,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تسلط به BloodHound برای نقشه‌برداری مسیر حمله</span>
+            </div><div class="item " onclick="toggle(5,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">یادگیری عملی Mimikatz و مجموعه Impacket</span>
+            </div><div class="item " onclick="toggle(5,3)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تمرین Kerberoasting و ASREPRoasting</span>
+            </div><div class="item " onclick="toggle(5,4)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">تمرین Pass-the-Hash، Pass-the-Ticket و Golden/Silver Ticket</span>
+            </div><div class="item " onclick="toggle(5,5)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">حل کامل Pro Lab با نام Dante در HackTheBox</span>
+            </div>
+        </div></div>
+      </div>
+      <div class="phase  ">
+        <div class="phase-head" onclick="togglePhase(6)">
+          <div class="phase-left">
+            <span class="phase-num">PHASE 07</span>
+            <div class="phase-title">مدرک نهایی و آماده‌سازی برای مهاجرت<small>تبدیل مهارت به یک رزومه‌ی قابل ارائه</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">0/3</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:0%"></div></div>
+            <span class="chev">►</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          <div class="item " onclick="toggle(6,0)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">آماده‌سازی و قبولی در PNPT یا OSCP</span>
+            </div><div class="item " onclick="toggle(6,1)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">ساخت وبلاگ یا سایت پورتفولیوی شخصی</span>
+            </div><div class="item " onclick="toggle(6,2)">
+              <span class="box">[&nbsp;&nbsp;]</span>
+              <span class="item-text">آماده‌سازی رزومه و پروفایل لینکدین برای بازار کار بین‌المللی</span>
+            </div>
+        </div></div>
+      </div>
+    <div class="footer">
+      <span class="footer-note">SAVED IN BROWSER · localStorage</span>
+      <button class="reset-btn" onclick="resetAll()">بازنشانی کل پیشرفت</button>
+    </div></div>
+
+<script>
+const STORAGE_KEY = "ad-roadmap-v1";
+
+const PHASES = [
+  {
+    title: "پایه: برنامه‌نویسی و ذهنیت امنیتی",
+    sub: "اولین زبان‌ها و مفاهیم پایه‌ای که همه‌چیز روشون سوار می‌شه",
+    items: [
+      "یادگیری پایتون پایه (متغیر، حلقه، تابع، فایل)",
+      "آشنایی با کتابخانه‌های requests و socket",
+      "تسلط به اسکریپت‌نویسی Bash و خط‌فرمان",
+      "فهم مفاهیم C (پوینتر، استک، حافظه)",
+      "آشنایی مقدماتی با Assembly و خروجی gdb/objdump"
+    ]
+  },
+  {
+    title: "پایه: لینوکس و شبکه",
+    sub: "محیط کاری و زبان شبکه‌ای که همه‌ی ابزارها باهاش حرف می‌زنن",
+    items: [
+      "نصب و راه‌اندازی Kali Linux یا Parrot OS",
+      "تکمیل کامل OverTheWire Bandit (۳۴ مرحله)",
+      "یادگیری مدل OSI/TCP-IP و پروتکل‌های کلیدی",
+      "تمرین عملی nmap و Wireshark",
+      "گذراندن دوره‌ی رایگان PortSwigger Web Security Academy"
+    ]
+  },
+  {
+    title: "ورود به CTF (Jeopardy)",
+    sub: "اولین چالش‌های واقعی و دسته‌بندی‌شده",
+    items: [
+      "حل کامل آرشیو picoCTF",
+      "تکمیل مسیر Pre Security در TryHackMe",
+      "تکمیل مسیر Jr Penetration Tester در TryHackMe",
+      "حل تمام ماشین‌های Starting Point در HackTheBox"
+    ]
+  },
+  {
+    title: "Boot2Root و ساخت پروفایل عمومی",
+    sub: "اینجاست که مهارت واقعی pentest شکل می‌گیره",
+    items: [
+      "حل حداقل ۱۰ ماشین سطح Easy در HackTheBox",
+      "نوشتن write-up برای هر ماشین حل‌شده در گیت‌هاب شخصی",
+      "پیوستن یا تشکیل یک تیم CTF",
+      "ثبت‌نام و شرکت در اولین مسابقه‌ی واقعی (از CTFtime)"
+    ]
+  },
+  {
+    title: "اولین مدرک حرفه‌ای: eJPT",
+    sub: "اعتبارسنجی رسمی اول مسیر",
+    items: [
+      "مرور کامل سرفصل‌های آزمون eJPT",
+      "ثبت‌نام و شرکت در آزمون",
+      "قبولی و دریافت مدرک eJPT"
+    ]
+  },
+  {
+    title: "تخصص زیرساخت: Active Directory",
+    sub: "هسته‌ی اصلی هدف نهایی‌ت — نفوذ به زیرساخت سازمانی",
+    items: [
+      "راه‌اندازی لب رایگان GOAD روی سیستم شخصی",
+      "تسلط به BloodHound برای نقشه‌برداری مسیر حمله",
+      "یادگیری عملی Mimikatz و مجموعه Impacket",
+      "تمرین Kerberoasting و ASREPRoasting",
+      "تمرین Pass-the-Hash، Pass-the-Ticket و Golden/Silver Ticket",
+      "حل کامل Pro Lab با نام Dante در HackTheBox"
+    ]
+  },
+  {
+    title: "مدرک نهایی و آماده‌سازی برای مهاجرت",
+    sub: "تبدیل مهارت به یک رزومه‌ی قابل ارائه",
+    items: [
+      "آماده‌سازی و قبولی در PNPT یا OSCP",
+      "ساخت وبلاگ یا سایت پورتفولیوی شخصی",
+      "آماده‌سازی رزومه و پروفایل لینکدین برای بازار کار بین‌المللی"
+    ]
+  }
+];
+
+const LADDER = ["ANON","GUEST","USER","L-ADMIN","D-USER","P-USER","E-ADMIN","DOMAIN ADMIN"];
+
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch(e){ return {}; }
+}
+
+function saveState(s){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+  catch(e){ console.error("save failed",e); }
+}
+
+let state = loadState();
+let openPhase = null;
+
+function iid(pi,ii){ return "p"+pi+"i"+ii; }
+
+function phaseStats(pi){
+  const total = PHASES[pi].items.length;
+  let done = 0;
+  for(let ii=0;ii<total;ii++){ if(state[iid(pi,ii)]) done++; }
+  return {done,total};
+}
+
+function overallStats(){
+  let done=0,total=0,complete=0;
+  PHASES.forEach((_,pi)=>{ const s=phaseStats(pi); done+=s.done; total+=s.total; if(s.done===s.total) complete++; });
+  return {done,total,complete};
+}
+
+function render(){
+  const o = overallStats();
+  const pct = o.total ? Math.round((o.done/o.total)*100) : 0;
+  const si = Math.min(o.complete, LADDER.length-1);
+
+  let h = `
+    <div class="eyebrow">OPERATION LOG // INFRASTRUCTURE PENTEST TRACK</div>
+    <h1>عملیات: صفر تا <span>Domain Admin</span></h1>
+    <p class="subtitle">مسیر CTF تا تخصص نفوذ به زیرساخت. هر آیتمی که تموم می‌کنی رو علامت بزن — پیشرفتت توی همین مرورگر ذخیره می‌مونه.</p>
+
+    <div class="ladder-card">
+      <div class="ladder-top">
+        <span class="ladder-label">PRIVILEGE LEVEL</span>
+        <span class="ladder-current">${LADDER[si]}</span>
+      </div>
+      <div class="ladder-track"><div class="ladder-fill" style="width:${(si/7)*100}%"></div></div>
+      <div class="ladder-stops">
+        ${LADDER.map((l,i)=>`<div class="stop ${i<=si?'reached':''} ${i===si?'current':''}"><div class="dot"></div>${l}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="overall">
+      <div class="overall-bar"><div class="overall-fill" style="width:${pct}%"></div></div>
+      <div class="overall-text">${o.done}/${o.total} &middot; ${pct}%</div>
+    </div>
+  `;
+
+  PHASES.forEach((p,pi)=>{
+    const s = phaseStats(pi);
+    const isOpen = openPhase===pi;
+    const isComplete = s.done===s.total;
+    const barPct = s.total?(s.done/s.total)*100:0;
+    h += `
+      <div class="phase ${isOpen?'open':''} ${isComplete?'complete':''}">
+        <div class="phase-head" onclick="togglePhase(${pi})">
+          <div class="phase-left">
+            <span class="phase-num">PHASE ${String(pi+1).padStart(2,'0')}</span>
+            <div class="phase-title">${p.title}<small>${p.sub}</small></div>
+          </div>
+          <div class="phase-right">
+            <span class="phase-count">${s.done}/${s.total}</span>
+            <div class="phase-bar"><div class="phase-bar-fill" style="width:${barPct}%"></div></div>
+            <span class="chev">&#9658;</span>
+          </div>
+        </div>
+        <div class="phase-body"><div class="items">
+          ${p.items.map((it,ii)=>{
+            const chk=!!state[iid(pi,ii)];
+            return `<div class="item ${chk?'checked':''}" onclick="toggle(${pi},${ii})">
+              <span class="box">${chk?'[&times;]':'[&nbsp;&nbsp;]'}</span>
+              <span class="item-text">${it}</span>
+            </div>`;
+          }).join('')}
+        </div></div>
+      </div>`;
+  });
+
+  h += `
+    <div class="footer">
+      <span class="footer-note">SAVED IN BROWSER · localStorage</span>
+      <button class="reset-btn" onclick="resetAll()">بازنشانی کل پیشرفت</button>
+    </div>`;
+
+  document.getElementById('app').innerHTML = h;
+}
+
+window.togglePhase = function(pi){
+  openPhase = (openPhase===pi) ? -1 : pi;
+  render();
+};
+
+window.toggle = function(pi,ii){
+  const id = iid(pi,ii);
+  state[id] = !state[id];
+  saveState(state);
+  openPhase = pi;
+  render();
+};
+
+window.resetAll = function(){
+  if(!confirm("مطمئنی؟ کل پیشرفت پاک می‌شه.")) return;
+  state = {};
+  saveState(state);
+  openPhase = 0;
+  render();
+};
+
+// open first incomplete phase on load
+openPhase = PHASES.findIndex((_,pi)=>{ const s=phaseStats(pi); return s.done<s.total; });
+if(openPhase===-1) openPhase = PHASES.length-1;
+render();
+</script>
+
+
+</body></html>
